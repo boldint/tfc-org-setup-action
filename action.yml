@@ -1,0 +1,36 @@
+# action.yml
+name: 'Terraform Cloud Workspace setup'
+description: 'Setup a Terraform Cloud/Enterprise workspace'
+inputs:
+  hostname:
+    description: 'Terraform hostname'
+    required: true
+    default: "app.terraform.io"
+  organization:
+    description: 'Terraform Organization name'
+    required: true
+  workspace:
+    description: 'Terraform Workspace name'
+    required: true
+  token:
+    description: 'Terraform API token'
+    required: true
+  vars:
+    description: 'Variables to create in workspace'
+    required: false
+    default: ""
+outputs:
+  workspace_id:
+    description: 'The created or updated Terraform workspace ID'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.organization }}
+    - ${{ inputs.workspace }}
+    - ${{ inputs.token }}
+    - ${{ inputs.vars }}
+    - ${{ inputs.hostname }}
+branding:
+  icon: 'check-square'
+  color: 'blue'
