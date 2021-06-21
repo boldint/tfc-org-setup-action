@@ -1,44 +1,51 @@
 #!/bin/sh -l
 
-TF_ORGA=$(echo $1)
-TF_WS=$(echo $2)
-TF_TOKEN=$(echo $3)
-echo "{ \"vars\":[ $4 ]}" > variables.json
-TF_HOST=$(echo $5)
+TFC_ORG_NAME=$(echo $1)
+TFC_ORG_EMAIL=$(echo $2)
+TFC_WS=$(echo $3)
+TFC_TOKEN=$(echo $4)
+echo "{ \"vars\":[ $5 ]}" > variables.json
+TFC_HOST=$(echo $6)
 
-#Create workspace
-printf "\nCreate or get workspace:%s" "$TF_WS"
-sed "s/T_WS/$TF_WS/" < /tmp/workspace.payload > workspace.json
-curl -s --header "Authorization: Bearer $TF_TOKEN" --header "Content-Type: application/vnd.api+json" --request POST --data @workspace.json "https://$TF_HOST/api/v2/organizations/$TF_ORGA/workspaces" > logs.txt
+# Create Organization
+printf "\nCreate or get organization:%s" "$TFC_ORG_NAME"
+sed "s/TFC_ORG_NAME/$TFC_ORG_NAME/; s/TFC_ORG_EMAIL/$TFC_ORG_EMAIL/" < /tmp/organization.payload > organization.json
+organization_id=$(curl  --header "Authorization: Bearer $TFC_TOKEN" --header "Content-Type: application/vnd.api+json" --request POST --data @organization.json "https://$TFC_HOST/api/v2/organizations" | jq -r ".data.id")
+echo "::set-output name=organization_id::$organization_id"
 
-#Retreive Workspace ID
-wid=$(curl -s --header "Authorization: Bearer $TF_TOKEN" --header "Content-Type: application/vnd.api+json" "https://$TF_HOST/api/v2/organizations/$TF_ORGA/workspaces/$TF_WS" | jq -r .data.id)
-
-#Clean existing variables
-printf "\nClear existing variables"
-curl -s --header "Authorization: Bearer $TF_TOKEN" --header "Content-Type: application/vnd.api+json" "https://$TF_HOST/api/v2/workspaces/$wid/vars" > vars.json
-x=$(cat vars.json | jq -r ".data[].id" | wc -l | awk '{print $1}')
-i=0
-while [ $i -lt $x ]
+#Create and populate workspaces
+for workspace in $(echo $TFC_WS | jq -r ". | keys | .[]");
 do
-  curl -s --header "Authorization: Bearer $TF_TOKEN" --header "Content-Type: application/vnd.api+json" --request DELETE "https://$TF_HOST/api/v2/workspaces/$wid/vars/$(cat vars.json | jq -r ".data[$i].id")" > logs.txt
-  i=`expr $i + 1`
-done
-
-#Create variables
-for k in $(jq '.vars | keys | .[]' variables.json); do
-    value=$(jq -r ".vars[$k]" variables.json);
-
-    key=$(echo $value | jq '.key')
-    raw_value=$(echo $value | jq '.value')
-    escaped_value=$(echo $raw_value | sed -e 's/[]\/$*.^[]/\\&/g');
-    sensitive=$(echo $value | jq '.sensitive')
-    category=$(echo $value | jq '.category')
+  # Create Workspace
+  printf "\nCreate or get workspace:%s" "$workspace"
+  sed "s/TFC_WS/$workspace/" < /tmp/workspace.payload > workspace.json
+  workspace_id=$(curl -s --header "Authorization: Bearer $TFC_TOKEN" --header "Content-Type: application/vnd.api+json" --request POST --data @workspace.json "https://$TFC_HOST/api/v2/organizations/$TFC_ORG_NAME/workspaces" | jq -r ".data.id")
+  echo "::set-output name=workspace_id_$workspace::$workspace_id"
+  # Create / Update Variables
+  IFS=$'\n' # To ignore whitespaces in line
+  for variable in $(echo $TFC_WS | jq -rc ".$workspace[]"); # JQ will output all variables in a single line
+  do
+    key=$(echo $variable | jq -rc ".key")
+    value=$(echo $variable | jq -rc ".value" | sed -e 's/[]\/$*.^[]/\\&/g') # this variable needs to be escaped
+    sensitive=$(echo $variable | jq -rc ".sensitive")
+    category=$(echo $variable | jq -rc ".category")
 
     printf "\nCreate variable %s" "$key"
-    sed -e "s/T_KEY/$key/" -e "s/my-hcl/false/" -e "s/T_VALUE/$escaped_value/" -e "s/T_SECURED/$sensitive/" -e "s/T_CATEGORY/$category/" -e "s/T_WSID/$wid/" < /tmp/variable.payload  > paylaod.json
-    curl -s --header "Authorization: Bearer $TF_TOKEN" --header "Content-Type: application/vnd.api+json" --request POST --data @paylaod.json "https://$TF_HOST/api/v2/workspaces/$wid/vars" > log.txt
+    sed -e "s/TFC_VAR_KEY/$key/" -e "s/TFC_VAR_VALUE/$value/" -e "s/TFC_VAR_SENSITIVE/$sensitive/" -e "s/TFC_VAR_CATEGORY/$category/" < /tmp/variable.payload  > payload.json
+    variable_id=$(curl -s --header "Authorization: Bearer $TFC_TOKEN" --header "Content-Type: application/vnd.api+json" --request POST --data @payload.json "https://$TFC_HOST/api/v2/workspaces/$workspace_id/vars" | jq -r ".data.id")
+    echo "::set-output name=variable_id_$key::$variable_id"
+  done
 done
 
-printf "\n\n"
-echo "::set-output name=workspace_id::$wid"
+
+#Clean existing variables
+#printf "\nClear existing variables"
+#curl -s --header "Authorization: Bearer $TFC_TOKEN" --header "Content-Type: application/vnd.api+json" "https://$TFC_HOST/api/v2/workspaces/$wid/vars" > vars.json
+#x=$(cat vars.json | jq -r ".data[].id" | wc -l | awk '{print $1}')
+#i=0
+#while [ $i -lt $x ]
+#do
+#  curl -s --header "Authorization: Bearer $TFC_TOKEN" --header "Content-Type: application/vnd.api+json" --request DELETE "https://$TFC_HOST/api/v2/workspaces/$wid/vars/$(cat vars.json | jq -r ".data[$i].id")" > logs.txt
+#  i=`expr $i + 1`
+#done
+

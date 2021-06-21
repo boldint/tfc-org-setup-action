@@ -3,33 +3,32 @@ name: 'Terraform Cloud Workspace setup'
 description: 'Setup a Terraform Cloud/Enterprise workspace'
 inputs:
   hostname:
-    description: 'Terraform hostname'
+    description: 'Terraform Cloud hostname'
     required: true
     default: "app.terraform.io"
   organization:
-    description: 'Terraform Organization name'
+    description: 'Terraform Cloud Organization name'
     required: true
-  workspace:
-    description: 'Terraform Workspace name'
+  organization_email:
+    description: 'Terraform Cloud Organization email'
+    required: true
+  workspaces:
+    description: 'Terraform Cloud Workspaces definitions and variables'
     required: true
   token:
-    description: 'Terraform API token'
+    description: 'Terraform Cloud API token'
     required: true
-  vars:
-    description: 'Variables to create in workspace'
-    required: false
-    default: ""
 outputs:
-  workspace_id:
-    description: 'The created or updated Terraform workspace ID'
+  organization_id:
+    description: 'The created or updated Terraform Organization ID'
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
     - ${{ inputs.organization }}
-    - ${{ inputs.workspace }}
+    - ${{ inputs.organization_email }}
+    - ${{ inputs.workspaces }}
     - ${{ inputs.token }}
-    - ${{ inputs.vars }}
     - ${{ inputs.hostname }}
 branding:
   icon: 'check-square'

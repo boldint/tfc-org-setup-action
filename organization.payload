@@ -1,0 +1,9 @@
+{
+  "data": {
+    "type": "organizations",
+    "attributes": {
+      "name": "TFC_ORG_NAME",
+      "email": "TFC_ORG_EMAIL"
+    }
+  }
+}

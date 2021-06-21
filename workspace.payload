@@ -2,8 +2,9 @@
   "data":
   {
     "attributes": {
-      "name":"T_WS",
+      "name":"TFC_WS",
       "auto-apply":"false",
+      "execution-mode": "local",
       "description":"Created by Github Actions for Terraform project",
       "source-name":"GitHub CI/CD for Terraform",
       "source-url":"https://github.com/recarnot/terraform-github-cicd-bootstrap"

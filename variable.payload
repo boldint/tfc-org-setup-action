@@ -2,19 +2,12 @@
   "data": {
     "type": "vars",
     "attributes": {
-      "key": T_KEY,
-      "value": T_VALUE,
-      "category": T_CATEGORY,
+      "key": TFC_VAR_KEY,
+      "value": TFC_VAR_VALUE,
+      "category": TFC_VAR_CATEGORY,
+      "description": "Created using GitHub automation!"
       "hcl": false,
-      "sensitive": T_SECURED
-    },
-    "relationships": {
-      "workspace": {
-        "data": {
-          "id": "T_WSID",
-          "type": "workspaces"
-        }
-      }
+      "sensitive": TFC_VAR_SENSITIVE
     }
   }
 }
