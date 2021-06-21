@@ -1,4 +1,4 @@
-FROM alpine:3.10
+FROM alpine:3.14
 
 COPY entrypoint.sh /entrypoint.sh
 COPY organization.payload /tmp/organization.payload
